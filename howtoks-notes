@@ -1,0 +1,68 @@
+Purpose to kickstart a virtual machine is to save time and not spin a machine manually but spin it quickly and efficiently. Once spun, the vm is ready to be used on any terminal software like MobaXterm which uses networking tools like SSH. 
+
+First spin a new virtual machine manually:
+-      Once fully spun manually, install, start, & enable httpd
+	o	yum -y install httpd
+	o	systemctl status httpd
+	o	systemctl start httpd
+	o	systemctl enable httpd
+-      add port 80 in firewall
+	o	firewall-cmd --list-all 
+	o	firewall-cmd --add-port=80/tcp --permanent
+	o	firewall-cmd --add-port=80/udp --permanent 
+	o	firewall-cmd --reload
+	o	firewall-cmd --list-all
+-	set permissions to permissive
+	o	getenforce (to see what is running)
+	o	setenforce 0 
+			0=permissive
+			1=forced/forcing
+-	If you want to make sure and permanently make it permissive
+	o	vim /etc/selinux/config
+			only change enforcing to permissive
+Next is to make a kickstart file:
+-	Copy base/original anaconda-ks.cfg to directory /var/www/html and then change the name to ks-###.cfg for better readability
+	o	cd 
+	o	cp anaconda-ks.cfg /var/www/html
+	o	cd /var/www/html
+	o	mv anaconda-ks.cfg ks-102.cfg
+-	Then add network settings and change hostname to vm102 as well
+	o	vim ks-102.cfg
+			add the following directly under #Network information ALL IN ONE LINE
+			•	network  --bootproto=static --device=enp0s3 --onboot=on --ipv6=auto --no-activate --ip=192.168.1.102 --netmask=255.255.255.0 --gateway=192.168.1.1 --nameserver=192.168.1.1
+			then, in the next existing line; change network --hostname=localhost.localdomain to vm102 like this:
+			•	network --hostname=vm102
+-	In the same file, add the license agreement; right above line that says “%addon com_redhat_kdump --enable --reserve-mb='auto' ” , three lines will be added
+	o	Add first line 
+			# Reboot after installation
+	o	press enter and add second line
+			reboot
+	o	press enter again and add third line
+			eula --agreed
+	o	once done, go into escape mode by pressing ESC button and type :wq to save/write and quit 
+-	make sure file permissions are readable 
+	o	chmod 644 ks-102.cfg
+Next install pykickstart to check if the kickstart is valid and can run properly:
+-	Install pykickstart
+	o	yum -y install pykickstart
+-	once installed, check validity of kickstart file with cmd ksvalidator
+	o	ksvalidator ks-102.cfg
+	o	if nothing shows up once entered, then you are good to go
+Before spinning new vm for kickstart, see if this file is able to show on your browser:
+-	Open browser (Google Chrome, Safari, Microsoft Edge, Firefox)
+-	type the ip address of your vm you made your kickstart file in the browser
+	o	192.168.1.101/ks102.cfg
+-	if it is showing then good to go next step, if not, then troubleshoot and go over every step
+Create a new vm and call it vm102:
+-	Once created; edit the launch/install command
+	o	I use oracle virtual box so I use tab button, different for ESXI
+			once in edit mode add a space and add(vm address needs to be correct otherwise it won’t fetch properly):
+		•	inst.ks=http://192.168.1.101/ks-102.cfg
+If no issues happen, at least for Oracle VirtualBox(idk if EXSI has this or not), system will reboot and try to reinstall iso file(which you do not want):
+-	Stop the machine once the FIRST boot is complete via kickstart
+-	Once vm is rebooted, stop the machine manually(turn it off) 
+-	Remove iso file before turning it on from settings; storage
+-	Once iso file is removed, boot up machine in background(for oracle virtual machine: headless start)
+Access vm102 using MobaXterm via SSH; use ip address created for vm102:
+	o	192.168.1.102
+
